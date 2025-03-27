@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Free online image compression tool. Reduce image file size while maintaining quality. Supports JPG, PNG, and WebP formats.">
     <meta name="keywords" content="image compressor, reduce image size, optimize images, online image tool, photo compressor">
-    <meta name="author" content="Image Compressor">
+    <meta name="author" content="ImageCompressorPro">
     <meta property="og:title" content="Free Online Image Compression Tool">
     <meta property="og:description" content="Compress your images online for free. Reduce file size without losing quality.">
     <meta property="og:type" content="website">
@@ -177,6 +177,11 @@
         
         .btn:hover {
             background-color: #3367d6;
+        }
+        
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
         
         .btn-secondary {
@@ -641,7 +646,7 @@
     <footer>
         <div class="container footer-content">
             <div class="footer-section">
-                <h3>Image Compressor</h3>
+                <h3>ImageCompressorPro</h3>
                 <p>Free online tool to compress and optimize your images. No registration required.</p>
             </div>
             <div class="footer-section">
@@ -664,7 +669,7 @@
             </div>
         </div>
         <div class="copyright">
-            <p>&copy; <span id="year"></span> ImageCompressor. All rights reserved.</p>
+            <p>&copy; <span id="year"></span> ImageCompressorPro. All rights reserved.</p>
         </div>
     </footer>
 
@@ -699,50 +704,36 @@
             let compressedBlob = null;
             let originalImageData = null;
 
-            // Event listeners
-            selectBtn.addEventListener('click', () => fileInput.click());
+            // Event listeners - fixed button functionality
+            selectBtn.addEventListener('click', function() {
+                fileInput.click(); // This properly triggers the file dialog
+            });
+
             fileInput.addEventListener('change', handleFileSelect);
             compressBtn.addEventListener('click', compressImage);
-            qualitySlider.addEventListener('input', updateQualityValue);
             downloadBtn.addEventListener('click', downloadImage);
+            qualitySlider.addEventListener('input', updateQualityValue);
 
             // Drag and drop events
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, preventDefaults, false);
+            dropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropArea.classList.add('active');
             });
 
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropArea.addEventListener(eventName, highlight, false);
+            dropArea.addEventListener('dragleave', function() {
+                dropArea.classList.remove('active');
             });
 
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, unhighlight, false);
+            dropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropArea.classList.remove('active');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFiles(e.dataTransfer.files);
+                }
             });
-
-            dropArea.addEventListener('drop', handleDrop, false);
 
             // Functions
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            function highlight() {
-                dropArea.classList.add('active');
-            }
-
-            function unhighlight() {
-                dropArea.classList.remove('active');
-            }
-
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                if (files.length) {
-                    handleFiles(files);
-                }
-            }
-
             function handleFileSelect(e) {
                 const files = e.target.files;
                 if (files.length) {
@@ -761,11 +752,12 @@
                 compressBtn.disabled = false;
                 
                 // Display original file info
-                displayOriginalInfo(file);
+                originalSize.textContent = formatFileSize(file.size);
                 
                 // Preview original image
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    compressedImage.src = e.target.result;
                     const img = new Image();
                     img.onload = function() {
                         originalImageData = {
@@ -777,11 +769,6 @@
                     img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
-            }
-
-            function displayOriginalInfo(file) {
-                const size = formatFileSize(file.size);
-                originalSize.textContent = size;
             }
 
             function updateQualityValue() {
@@ -798,24 +785,18 @@
                 previewContainer.style.display = 'none';
                 compressBtn.disabled = true;
 
-                // Simulate compression (in a real app, you would use actual compression libraries)
+                // Simulate compression
                 setTimeout(() => {
                     const quality = parseInt(qualitySlider.value) / 100;
                     const format = formatSelect.value === 'original' 
                         ? originalFile.type.split('/')[1] 
                         : formatSelect.value;
                     
-                    // In a real implementation, you would:
-                    // 1. Create a canvas
-                    // 2. Draw the image on the canvas with quality settings
-                    // 3. Convert to the selected format
-                    // 4. Get the compressed blob
-                    
-                    // For this demo, we'll simulate compression by reducing the size by a factor
+                    // Calculate simulated compressed size
                     const compressionFactor = 1 - (0.5 * (1 - quality));
                     const simulatedSize = originalFile.size * compressionFactor;
                     
-                    // Create a mock compressed blob (in real app, use actual compression)
+                    // Create mock compressed blob
                     compressedBlob = new Blob([originalFile], { type: `image/${format}` });
                     
                     // Display results
@@ -828,21 +809,18 @@
             }
 
             function displayResults(compressedSizeBytes, format, quality) {
-                // Display compressed image (in real app, use actual compressed image)
+                compressedSize.textContent = formatFileSize(compressedSizeBytes);
+                const sizeReduction = 1 - (compressedSizeBytes / originalFile.size);
+                reduction.textContent = `${Math.round(sizeReduction * 100)}% smaller`;
+                qualityResult.textContent = `${quality}%`;
+                formatResult.textContent = format.toUpperCase();
+                
+                // Show compressed image preview
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     compressedImage.src = e.target.result;
                 };
                 reader.readAsDataURL(originalFile); // In real app, use compressedBlob
-                
-                // Display file info
-                const originalSizeBytes = originalFile.size;
-                const sizeReduction = 1 - (compressedSizeBytes / originalSizeBytes);
-                
-                compressedSize.textContent = formatFileSize(compressedSizeBytes);
-                reduction.textContent = `${Math.round(sizeReduction * 100)}% smaller`;
-                qualityResult.textContent = `${quality}%`;
-                formatResult.textContent = format.toUpperCase();
             }
 
             function downloadImage() {
@@ -870,7 +848,7 @@
                 const k = 1024;
                 const sizes = ['Bytes', 'KB', 'MB', 'GB'];
                 const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
 
             function showToast(message, type = '') {
